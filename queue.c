@@ -24,30 +24,85 @@ struct list_head *q_new()
 }
 
 /* Free all storage used by queue */
-void q_free(struct list_head *l) {}
+void q_free(struct list_head *l)
+{
+    if (list_empty(l))
+        return;
+    element_t *temp, *it;
+    list_for_each_entry_safe (it, temp, l, list) {
+        q_release_element(it);
+    }
+    free(l);
+}
 
 /* Insert an element at head of queue */
 bool q_insert_head(struct list_head *head, char *s)
 {
+    if (!head)
+        return false;
+
+    element_t *new = malloc(sizeof(element_t));
+    if (!new)
+        return false;
+
+    new->value = strdup(s);
+    if (!new->value)  // if allocate failed
+    {
+        free(new);
+        return false;
+    }
+    list_add(&new->list, head);
     return true;
 }
+
 
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
 {
+    if (!head)
+        return false;
+
+    element_t *new = malloc(sizeof(element_t));
+    if (!new)
+        return false;
+
+    new->value = strdup(s);
+    if (!new->value)  // if allocate failed
+    {
+        free(new);
+        return false;
+    }
+    list_add_tail(&new->list, head);
     return true;
 }
 
 /* Remove an element from head of queue */
 element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 {
-    return NULL;
+    if (!head || list_empty(head))
+        return NULL;
+    element_t *remove_loc = list_first_entry(head, element_t, list);
+    list_del(&remove_loc->list);
+    if (sp) {
+        strncpy(sp, remove_loc->value, bufsize - 1);
+        sp[bufsize - 1] = '\0';
+    }
+    return remove_loc;
 }
+
 
 /* Remove an element from tail of queue */
 element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 {
-    return NULL;
+    if (!head || list_empty(head))
+        return NULL;
+    element_t *remove_loc = list_last_entry(head, element_t, list);
+    list_del(&remove_loc->list);
+    if (sp) {
+        strncpy(sp, remove_loc->value, bufsize - 1);
+        sp[bufsize - 1] = '\0';
+    }
+    return remove_loc;
 }
 
 /* Return number of elements in queue */
