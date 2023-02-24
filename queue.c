@@ -251,7 +251,6 @@ void q_sort(struct list_head *head)
         return;
     head->prev->next = NULL;
     head->next = mergesort(head->next);
-    // head = mergesort(head);
     struct list_head *current = head, *next = head->next;
     while (next) {
         next->prev = current;
@@ -288,8 +287,51 @@ int q_descend(struct list_head *head)
     return count;
 }
 
+void merge_two_list(struct list_head *L1, struct list_head *L2)
+{
+    if (!L1 || !L2)
+        return;
+    struct list_head head;
+    INIT_LIST_HEAD(&head);
+    while (!list_empty(L1) && !list_empty(L2)) {
+        element_t *E1 = list_first_entry(L1, element_t, list);
+        element_t *E2 = list_first_entry(L2, element_t, list);
+        element_t *node = strcmp(E1->value, E2->value) <= 0 ? E1 : E2;
+        list_move_tail(&node->list, &head);
+    }
+    list_splice_tail_init(L1, &head);
+    list_splice_tail(L2, &head);
+    list_splice(&head, L1);
+}
+
 /* Merge all the queues into one sorted queue, which is in ascending order */
 int q_merge(struct list_head *head)
 {
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+    if (list_is_singular(head))
+        return q_size(list_first_entry(head, queue_contex_t, chain)->q);
+    queue_contex_t *it, *safe;
+    // remove empty chain to avoid "while (first->q && second->q)" miss one
+    // of no empty queue. e.g. lists = [[1,4,5],[1,3,4],[],[2,6]] , because when
+    // first==[] second==[2,6], [2,6] be neglect
+    list_for_each_entry_safe (it, safe, head, chain) {
+        if (!it->q)
+            list_del_init(&it->chain);
+    }
+    int count = (q_size(head) + 1) / 2;
+    for (int i = 0; i < count; i++) {
+        queue_contex_t *first = list_first_entry(head, queue_contex_t, chain);
+        queue_contex_t *second =
+            list_entry(first->chain.next, queue_contex_t, chain);
+        while (first->q && second->q) {
+            merge_two_list(first->q, second->q);
+            second->q = NULL;
+            list_move_tail(&second->chain, head);
+            first = list_entry(first->chain.next, queue_contex_t, chain);
+            second = list_entry(first->chain.next, queue_contex_t, chain);
+        }
+    }
+    return q_size(list_first_entry(head, queue_contex_t, chain)->q);
 }
+
